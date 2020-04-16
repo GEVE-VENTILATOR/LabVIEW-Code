@@ -1,12 +1,13 @@
-# LabVIEW Monitoring Interface
+# Arduino to LabVIEW Communication
 
 For this project, the [Arduino Code](../../../Arduino-Code) does the heavy lifting by interacting with the physical control knobs and executing the main ventilator functionality.
 However, we wanted to add the option for **monitoring** and **graphing** the process variables of the ventilator **over time**.
-For this purpose, we decided to send the most important run-time varaible values from the Arduino as a formatted String and then reading and graphing them in LabVIEW.
+For this purpose, we decided to send the most important run-time variable values from the Arduino as a formatted String and then reading and graphing them in LabVIEW.
 
 ## Communication Options
 
 Aside from sending the data as raw bytes, there are libraries available to send data serialized as JSON, XML, MessagePack and other formats but we decided here to go for a simple formatted string that can be sent without including any libraries and easily parsed on the LabVIEW side.
+
 * **Raw Bytes:** Fast and small but you need to handle low-level parsing, non-printable characters and splitting and joining on both sides.
 * **Formatted String:** Reasonably fast (4 ms to send all values). Easy to read - by humans and machines. No libraries required. Not necessarily a standard format.
 * **JSON et al.:** A standard but serialization of all values took 74 ms.
@@ -28,12 +29,12 @@ struct GEVE_VeMon_Data
   bool error_ack;            // User has pressed the acknowledge error button 
   double breath_pm;          // Breaths per minute potentiometer setting
   double tidal_volume;       // Tidal volume potentiometer setting
-  double in_ex_ratio;        // Inhale-to-exhale ratio potnetiometer setting
+  double in_ex_ratio;        // Inhale-to-exhale ratio potentiometer setting
   double peep;               // Positive End-Expiratory pressure potentiometer setting
   double pressure;           // Pressure value measured by pressure sensor
   double pressure_plateau;   // Pressure plateau setting 
   double motor_position;     // Motor position reported from the motor controller
-  bool alarm_p_high;         // Alarm status for pressure too hign
+  bool alarm_p_high;         // Alarm status for pressure too high
   bool alarm_p_low;          // Alarm status for pressure too low
   bool alarm_init;           // Alarm status for initialization failed
 };
@@ -113,3 +114,12 @@ The resulting string should then look something like this:
 ## Receiving the Data (in LabVIEW)
 
 Now that we know what the process data looks like, we'll have a look at how to 'decode' the string on the LabVIEW side.
+
+First, since we know what the data structure should look like, we recreate our type declaration in LabVIEW by making a Cluster type definition that looks exactly like the struct we defined in the Arduino code:
+
+![GEVE_VeMon_Data_FP.png](/doc/images/GEVE_VeMon_Data_FP.png "Cluster Front Panel")
+![GEVE_VeMon_Data_BD.png](/doc/images/GEVE_VeMon_Data_BD.png "Cluster Block Diagram")
+
+Parsing the string:
+
+![GEVE_VeMon_Data_Parse_String.png](doc/images/GEVE_VeMon_Data_Parse_String.png "Scan from String node")
