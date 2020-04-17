@@ -171,7 +171,7 @@ If **1.** the Arduino is not connected or **2.** the Arduino is now connected to
 In the code, these errors crop up with different error numbers and may each be handled slightly differently, if only for the logging text.
 We're showing the _Not Connected_ case here as one example.
 
-![Error_connect_dialog.png](doc/images/Error_connect_dialog.png "Custom pop-up dialog with connection settings")
+![Error_connect_dialog.png](doc/images/Error_connect_dialog.png#center "Custom pop-up dialog with connection settings")
 
 ![Error_not_connected.png](doc/images/Error_not_connected.png "Error handler case: Not Connected")
 
@@ -197,7 +197,7 @@ A quick word on putting everything together: The "Design Pattern" we went for he
 
 ![QMH_Overview.png](doc/images/QMH_Overview.png "Basic Queued Message Handler")
 
-Typically, a _Master_ or _GUI Loop_ produces data or commands for a _Worker Loop_ to execute at it's own pace. In this case, the _Worker Loop_ keeps sending a series of Messages (a 'Macro') to itself when idle to read from the Arduino indefinitely until the user closes the Front Panel window. 
+Typically, a _Master Loop_ or _GUI Loop_ produces data or commands for a _Worker Loop_ to execute at it's own pace. In this case, the _Worker Loop_ keeps sending a series of Messages (a 'Macro') to itself when idle to read from the Arduino indefinitely until the user closes the Front Panel window. 
 
 ![Message_Macro_Read.png](doc/images/Message_Macro_Read.png "Idle Case Message Macro")
 
