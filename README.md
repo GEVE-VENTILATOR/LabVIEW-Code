@@ -8,13 +8,13 @@ For this purpose, we decided to send the most important run-time variable values
 
 Aside from sending the data as raw bytes, there are libraries available to send data serialized as JSON, XML, MessagePack and other formats but we decided here to go for a simple formatted string that can be sent without including any libraries and easily parsed on the LabVIEW side.
 
-* **Raw Bytes:** Fast and small but you need to handle low-level parsing, non-printable characters and splitting and joining on both sides.
+* **Raw Bytes:** Fast and small but you need to handle low-level parsing, non-printable characters, and splitting and joining on both sides.
 * **Formatted String:** Reasonably fast (4 ms to send all values). Easy to read - by humans and machines. No libraries required. Not necessarily a standard format.
-* **JSON et al.:** A standard but serialization of all values took 74 ms.
+* **JSON et al.:** A standard. But serialization of all values took 74 ms.
 
 In the end we went for sending a fixed string in the format `<number>_<number>_ ... _<number>\r\n` in each Arduino loop iteration.
 
-But feel free to improve! :-)
+Feel free to improve! :-)
 
 ## Preparing the Data
 
@@ -72,7 +72,9 @@ geve_status.breath_pm    = bpm; // <--- PCIF ---
 
 All other values are updated at other places throughout the code.
 
-Finally, at the end of the Arduino main loop, we send all the data out via the serial interface:
+Finally, at the end of the Arduino main loop, we send all the data out via the serial interface:  
+**Note:** This requires to **disable** (comment-out) **all other serial debug output**. This could easily be avoided by using for example the [_SoftwareSerial_](https://www.arduino.cc/en/Reference/SoftwareSerial) library on other digital outputs if available. During testing we saw that this takes about 54 ms to send the values instead of 4 ms with the normal USB UART.  
+You could also define a special string token for LabVIEW to listen for. Be creative (and document it ;-)).
 
 ```
   //
@@ -120,23 +122,27 @@ First, we recreate our type declaration in LabVIEW by making a cluster type defi
 ![GEVE_VeMon_Data_FP.png](/doc/images/GEVE_VeMon_Data_FP.png "GEVE Monitoring Data Cluster Front Panel")
 ![GEVE_VeMon_Data_BD.png](/doc/images/GEVE_VeMon_Data_BD.png "GEVE Monitoring Data Cluster Block Diagram")
 
-The key elements of the LabVIEW program are now to configure and open the serial port, read the data until the `CRLF` termination is received, parse the data string and update the Front Panel indicators.
+The key elements of the LabVIEW program are now to
+* configure and open the serial port
+* read the data until the `CRLF` termination is received
+* parse the data string and
+* update the Front Panel indicators.
 
-When opening the serial port (a VISA resource in LabVIEW), the default configuration already is set to listen for a LineFeed termination character `LF` (\r or `0x10`) or to wait until a timeout is reached.
+When **opening the serial port** (a VISA resource in LabVIEW), the default configuration already is set to listen for a LineFeed termination character `LF` (\r or `0x10`) or to wait until a timeout is reached.
 
 ![VISA_open.png](doc/images/VISA_open.png "Configure and open serial port") 
 
 We then can listen for an expected maximum amount of input data on the serial port.
-The read node should execute successfully when less than the specified maximum byte count is received, terminated with a LineFeed `LF` character.
+The **read node** should execute successfully when less than the specified maximum byte count is received, terminated with a LineFeed `LF` character.
 Otherwise we'll get an error injected on the error wire that will have to be dealt with in an error handler.
 
-The received data is stored in a buffer to be parsed later.
+The received data is stored in a _Read Buffer_ to be parsed later.
 
 ![VISA_read.png](doc/images/VISA_read.png "Read data from the serial port") 
 
 Now that we've received the data from the Arduino, we can parse the string and put all data items into their place within our data cluster.
-LabVIEW already provides us with a native _Scan From String_ programming node.
-This gets our previously read buffer data as an input, as well as a _Format String_ similar to what you'd specify for example in `printf()` call in _C_.
+LabVIEW already provides us with a native **_Scan From String_** programming node.
+This receives our previously stored _Read Buffer_ data as an input, as well as a _Format String_, similar to what you'd specify for example in a `printf()` call in _C_.  
 In our case, we decided to have the format string look like this: `%d_%d_%f_%f_%f_%f_%f_%f_%f_%d_%d_%d`.
 The booleans from the Arduino are interpreted as _Signed decimal integer_ while the doubles are interpreted as _Floating-point number with fractional format (for example, 12.345)_.
 If we had mis-typed the format string or if we had received some other garbled String from the Arduino, the _Scan From String_ function would throw an error that would need to be dealt with later on.  
@@ -144,11 +150,11 @@ If all goes well, these values can now be bundled into our data cluster for late
 
 ![GEVE_VeMon_Data_Parse_String.png](doc/images/GEVE_VeMon_Data_Parse_String.png "Scan from String node")
 
-With the monitoring data stored in our data cluster, we can now update our Front Panel indicators. From the same data, we can build our graph to display the value changes over time.
+With the monitoring data stored in our data cluster, we can now **update our Front Panel indicators**. From the same data, we can build our graph to display the value changes over time.
 
 ![Update_Numerical_Indicators.png](doc/images/Update_Numerical_Indicators.png "Update numerical indicators on the front panel")
 
-This concludes describing the key items within the _GEVE Monitoring Interface_ LabVIEW program. The "Design Pattern" we went for here is called _Queued Message Handler_ in 'Classic LabVIEW' without Classes.
+This concludes describing the key items within the _GEVE Monitoring Interface_ LabVIEW program. The "Design Pattern" we went for here is called _Queued Message Handler_ in 'Classic LabVIEW' (i.e without Classes).
 
 Feel free to look at the code and make improvements! :-)
 
