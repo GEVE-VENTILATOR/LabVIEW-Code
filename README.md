@@ -154,9 +154,56 @@ With the monitoring data stored in our data cluster, we can now **update our Fro
 
 ![Update_Numerical_Indicators.png](doc/images/Update_Numerical_Indicators.png "Update numerical indicators on the front panel")
 
-This concludes describing the key items within the _GEVE Monitoring Interface_ LabVIEW program. The "Design Pattern" we went for here is called _Queued Message Handler_ in 'Classic LabVIEW' (i.e without Classes).
+## Error Handling
 
-Feel free to look at the code and make improvements! :-)
+We've mentioned earlier some immediate issues that could crop up during the communication. Here's a non-exhaustive list of "What could possibly go wrong?" thoughts:
+
+1. What happens if the Arduino is not connected?
+2. What happens if the Arduino is connected to a different COM port now (for example via a USB hub)?
+3. What happens if we changed the Baud rate of the connection (in the Arduino code)?
+4. What happens if the Arduino is not sending anything?
+5. What happens if the data received from the Arduino makes no sense?
+6. What happens if the connection is lost during the communication (Murphy tripped over the cable)?
+
+All of these situations should be somehow handled by the code without immediately ending the world. At least we need to shut down the application gracefully if something unanticipated has happened. Let's see...
+
+If **1.** the Arduino is not connected or **2.** the Arduino is now connected to a different COM port or **6.** the connection was lost, a pop-up dialog allows the user to change the COM port settings and either retry the connection or to quit the application.  
+In the code, these errors crop up with different error numbers and may each be handled slightly differently, if only for the logging text.
+We're showing the _Not Connected_ case here as one example.
+
+![Error_connect_dialog.png](doc/images/Error_connect_dialog.png "Custom pop-up dialog with connection settings")
+
+![Error_not_connected.png](doc/images/Error_not_connected.png "Error handler case: Not Connected")
+
+If **3.** the Baud rate is different from what we expected, we'll likely receive a bunch of garbled characters, similar to **5.** if we messed up the String formatting in either the Arduino or the LabVIEW code.  
+In these cases we're displaying a message in the status log area of the Front Panel to inform the user what's happened.
+For now, the error is then cleared and we'll keep retrying. This may not the best solution but the user is informed.
+
+![Error_wrong_data_format.png](doc/images/Error_wrong_data_format.png "Error handler case: Wrong Data Format")
+
+If **4.** the Arduino is not sending anything, we're just registering the communication timeout, clear the error and keep waiting for the next round.
+
+![Error_serial_timeout.png](doc/images/Error_serial_timeout.png "Error handler case: Serial Timeout")
+
+In case of an error we didn't think of yet, the _Default Case_ is executed, where we decided to panic and stop the application.
+
+![Error_Handler.png](doc/images/Error_Handler.png "Error handler case: Unknown Error")
+
+There is certainly room for improvement. For now, we hope these cases can serve as inspiration for an initial approach.
+
+## Architecture
+
+A quick word on putting everything together: The "Design Pattern" we went for here is typically referred to as _Queued Message Handler_ in 'Classic LabVIEW' (i.e without Classes). The main concept here is to use a message queue for inter-process communication, sending commands between loops.
+
+![QMH_Overview.png](doc/images/QMH_Overview.png "Basic Queued Message Handler")
+
+Typically, a _Master_ or _GUI Loop_ produces data or commands for a _Worker Loop_ to execute at it's own pace. In this case, the _Worker Loop_ keeps sending a series of Messages (a 'Macro') to itself when idle to read from the Arduino indefinitely until the user closes the Front Panel window. 
+
+![Message_Macro_Read.png](doc/images/Message_Macro_Read.png "Idle Case Message Macro")
+
+This concludes describing the key items within the _GEVE Monitoring Interface_ LabVIEW program.
+
+Feel free to look at the code, explore and make improvements! :-)
 
 ## Other Cool Stuff
 
