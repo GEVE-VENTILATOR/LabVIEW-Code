@@ -113,13 +113,45 @@ The resulting string should then look something like this:
 
 ## Receiving the Data (in LabVIEW)
 
-Now that we know what the process data looks like, we'll have a look at how to 'decode' the string on the LabVIEW side.
+Now that we know what the process data structure looks like, we'll have a look at how to 'decode' the string on the LabVIEW side.
 
-First, since we know what the data structure should look like, we recreate our type declaration in LabVIEW by making a Cluster type definition that looks exactly like the struct we defined in the Arduino code:
+First, we recreate our type declaration in LabVIEW by making a cluster type definition that looks exactly like the struct we defined in the Arduino code:
 
-![GEVE_VeMon_Data_FP.png](/doc/images/GEVE_VeMon_Data_FP.png "Cluster Front Panel")
-![GEVE_VeMon_Data_BD.png](/doc/images/GEVE_VeMon_Data_BD.png "Cluster Block Diagram")
+![GEVE_VeMon_Data_FP.png](/doc/images/GEVE_VeMon_Data_FP.png "GEVE Monitoring Data Cluster Front Panel")
+![GEVE_VeMon_Data_BD.png](/doc/images/GEVE_VeMon_Data_BD.png "GEVE Monitoring Data Cluster Block Diagram")
 
-Parsing the string:
+The key elements of the LabVIEW program are now to configure and open the serial port, read the data until the `CRLF` termination is received, parse the data string and update the Front Panel indicators.
+
+When opening the serial port (a VISA resource in LabVIEW), the default configuration already is set to listen for a LineFeed termination character `LF` (\r or `0x10`) or to wait until a timeout is reached.
+
+![VISA_open.png](doc/images/VISA_open.png "Configure and open serial port") 
+
+We then can listen for an expected maximum amount of input data on the serial port.
+The read node should execute successfully when less than the specified maximum byte count is received, terminated with a LineFeed `LF` character.
+Otherwise we'll get an error injected on the error wire that will have to be dealt with in an error handler.
+
+The received data is stored in a buffer to be parsed later.
+
+![VISA_read.png](doc/images/VISA_read.png "Read data from the serial port") 
+
+Now that we've received the data from the Arduino, we can parse the string and put all data items into their place within our data cluster.
+LabVIEW already provides us with a native _Scan From String_ programming node.
+This gets our previously read buffer data as an input, as well as a _Format String_ similar to what you'd specify for example in `printf()` call in _C_.
+In our case, we decided to have the format string look like this: `%d_%d_%f_%f_%f_%f_%f_%f_%f_%d_%d_%d`.
+The booleans from the Arduino are interpreted as _Signed decimal integer_ while the doubles are interpreted as _Floating-point number with fractional format (for example, 12.345)_.
+If we had mis-typed the format string or if we had received some other garbled String from the Arduino, the _Scan From String_ function would throw an error that would need to be dealt with later on.  
+If all goes well, these values can now be bundled into our data cluster for later use.
 
 ![GEVE_VeMon_Data_Parse_String.png](doc/images/GEVE_VeMon_Data_Parse_String.png "Scan from String node")
+
+With the monitoring data stored in our data cluster, we can now update our Front Panel indicators. From the same data, we can build our graph to display the value changes over time.
+
+![Update_Numerical_Indicators.png](doc/images/Update_Numerical_Indicators.png "Update numerical indicators on the front panel")
+
+This concludes describing the key items within the _GEVE Monitoring Interface_ LabVIEW program. The "Design Pattern" we went for here is called _Queued Message Handler_ in 'Classic LabVIEW' without Classes.
+
+Feel free to look at the code and make improvements! :-)
+
+## Other Cool Stuff
+
+If you're interested in learning more, here's a tip of the hat to the folks at the [LabVIEW MakerHub](https://www.labviewmakerhub.com) and their [LabVIEW MakerHub](https://www.labviewmakerhub.com/doku.php?id=libraries:linx:start) which in essence lets you specify the Arduino as a deployment target and write your functionality in LabVIEW. Inspiration was drawn from their _custom command_ concept.  
